@@ -1,0 +1,65 @@
+language: 'python'
+sudo: false
+python:
+  - "2.7.11"
+
+env:
+  global:
+    - 'AWS_DEFAULT_REGION=us-east-1'
+    - 'AWS_ACCESS_KEY_ID=AKIAJGARB35NA2OFFNYQ'
+    - secure: "n91X5ZkK8ETXp33zLFF4v9jNubhZvfdZB1sd7/ZUt1sqR6K3rPThp7/xG6JFS4zAOIK+mv0lBgViIK0bQWTLg/Sb7t9ZVfkP21/MWDvMZUYpPUZ63AbdRS+nHrfgOkG5O8HxoitArw6e3Vu2s+UStHMoptWCfUt4TqEr+6BX3/oZuDpsm8ZnQr7zsWq+oDfRKbqwZgpd+0G9BQmuuAC7Wcamx4ZDo+acA286dYiA19CPdMRDVCZTFoLODxnPPGtjg11rBCn2bvBCynAsawPdq506hfkLSDasrOno2UH9DqRuTdghaUGlRk/B63HiRzEDazvov7QlsWcB5pX6b2GlmpH3dd0TWaFxZEf0wQFVhfW+BSFz1Nhxx40pwDLAudWDrK39tF/h16QQ/FF629zAkYZKimjo3RpgkzLstsGsXBH26x+lruKNprv+4zF+UIOEsv4AUNrb+iAbLC4eF5aMYHeIeubV6qbj5Fg9fwPJYIrYkIUH6C3YF3pnqtmtc3acxVm+R/cZt+ksI/kXnPhhYoN11IClqTyJTdnjqxrEwjvVrktAKCkloKr1Rzq/iDuYa5mnikSZ4aZkKHFCANZVWQZZOiDSCySyc1UTsJSEWjNzf52BjPcGqqSEr1zP37bbPBXKosWibBMXMBEM7T/hM+zMyqOdj8kQnGoLGxZXq8E="
+
+before_install:
+  - 'pip install awscli'
+
+install:
+  - 'make install'
+
+script:
+  - 'make test'
+
+after_success:
+  - './env/bin/coveralls'
+
+before_deploy:
+  - 'make lambda'
+
+deploy:
+  - provider: 'script'
+    script: '
+      aws lambda
+        update-function-code
+        --function-name "tidycat-environment-backend-staging"
+        --zip-file fileb://lambda.zip
+        --publish'
+    skip_cleanup: true
+    on:
+      repo: 'tidycat/environment-backend'
+      branch: 'master'
+  - provider: 'script'
+    script: '
+      aws lambda
+        update-function-code
+        --function-name "tidycat-environment-backend"
+        --zip-file fileb://lambda.zip
+        --publish'
+    skip_cleanup: true
+    on:
+      repo: 'tidycat/environment-backend'
+      tags: true
+  - provider: 'releases'
+    api_key:
+      secure: "oaaGsCQnqKWQk0sSBOeeZzP8phKy2s5WFNTb8Hi9CnsjVIF8LEM8FseDrXVRqXLGWYirbUsDWID7XyBjQZOXq5ETIXypoLKRWhp/ORytiW8m1n5npdZbGdAnmVvpp/JQmv40DfUVF0wfROnP3HsCh4Cs7H4Q/SBhglwaaFwpaCxKharl/VHsNdR1vVD3w6L/FDDArTjv5NxVwX6KfyIHb6JG9wdpQOiQkMsKTFJ+92CrmkVcrZLfPZOzbf9cdNuaqUysNVE00KuPBH88TToGqzsGIvvBqprx6hEYtmis2qkdMUG0NyBHS7as8z6d76ZReukuQCrWKExX45FkA9yISiZyTKzKkxtbsAWO4EwkupvMokiR7kKs/aJULFx18Ilf4/JGX+/hWKHqYD96+tdcAhK0liARvIug8Uou4usdYjx8LfJKqhGkUn6xzjTJWwrdV7hzMKyujrW3ppYVnOQCoIIOgXCyl5hEc36zVgT9jywIo+3o/a1SOjypHCntd0hc93j+fOdL6Tt9RgUQVx5jSE+lH3gwzuPXU1dH9ibpe40N/BWadLR/HOn2gUJRilzw4yHB174ScQ96xJbErlfV/tpD2FlpQh11dRF1FWsjaOtmQ8mAr2ciYs7CkX2cBj1opLtL3JxV9FwHx/9YTHJ3yjfImtQQRdr17xUJ42JtitA="
+    file: 'lambda.zip'
+    skip_cleanup: true
+    on:
+      repo: 'tidycat/environment-backend'
+      tags: true
+
+notifications:
+  email: false
+  irc:
+    channels:
+      - secure: "G3BrC23/3o5UNmDWAOYOEe/XR6U4+UE3hpAOM7SQXj5m5M1ovCh0jJ4aVkc1J36EznoStMY2DQt9oTWRrGUW9UZTtYeyD95BU0qsI0+p0Etwdt1KbLrFbcRL45FMonXSgwCJOsS+Kr5P0SJALfWkoN1o6Rh7feYO8N9hLLFNKJteecx2Rufuo14IF2OrFXS+kNZhPxIInljVmynuBugL0IDCCwsQeRWOxoqOOQk6C3q7hJpjl2v5oiJXesY2ulp5gQMGwjV91qk3o3h33IRMqSxWGQ82CtfhPzfrX7ibhxlZVZFMjrQ4CTDoQLpBA3f3jPA3dgMQJ0mcpFdqCFOKufHwpCY8/BPKNWvBLABt60VTwKW9CSFhadi8u7lJ2wxUyBhzH3SQZAF04sDOZN/Eh3XNxYRS2loREn+bbcUp6erSJEcz85cA33sz/niSDkGde1IKOqlV7xdlOo9TmbAyqdW9taPkSeaT85VB1HKcjtndaRi73qaYQczFj1iseDej40c4iG+SkBqsaDr4DUIg7pCSdniIfxtCKLgjIgHqjDrFXgEucbkEMgqoyw/D0ykoOg6V9rgwGa1Di6XW+jap+qGfqETyVc77/nr/Lh2YMGB+to+lA2l/SPZHBpnVSL9yokvc+b85GX6+C21QCTRicgp14T4mJYB8cq8PtJCY5HY="
+    on_success: "change"
+    on_failure: "change"
